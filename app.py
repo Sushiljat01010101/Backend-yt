@@ -242,6 +242,42 @@ def execute_download_job(job):
             active_jobs.discard(job_id)
 
 
+# Root Welcome Page
+@app.route("/", methods=["GET"])
+def index():
+    return """<!DOCTYPE html>
+<html>
+<head>
+    <title>Tiny Crap Backend Server</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0F19; color: #F8FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: #131826; border: 1px solid #1E293B; border-radius: 20px; max-width: 500px; width: 100%; padding: 32px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .badge { display: inline-block; background: #064E3B; color: #34D399; font-weight: bold; font-size: 12px; padding: 6px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: 0.5px; }
+        h1 { font-size: 26px; font-weight: 800; margin: 0 0 10px; color: #FFFFFF; }
+        p { color: #94A3B8; font-size: 14px; line-height: 1.6; margin: 0 0 24px; }
+        .btn { display: inline-block; background: #6366F1; color: white; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 12px; font-size: 14px; transition: 0.2s; }
+        .btn:hover { background: #4F46E5; }
+        .status-box { background: #1D2436; border-radius: 12px; padding: 14px; font-size: 12px; color: #CBD5E1; text-align: left; margin-bottom: 20px; font-family: monospace; line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">⚡ SERVER IS ONLINE</div>
+        <h1>Tiny Crap Server</h1>
+        <p>Your personal social media downloader backend is active and ready on Render cloud.</p>
+        <div class="status-box">
+            Status: 🟢 200 OK<br>
+            Engine: yt-dlp + FFmpeg<br>
+            Concurrency: Max 2 simultaneous downloads<br>
+            API Endpoints: /api/info, /api/download, /api/health
+        </div>
+        <a href="/admin" class="btn">Open Admin Dashboard</a>
+    </div>
+</body>
+</html>"""
+
+
 # API: Health Check
 @app.route("/api/health", methods=["GET"])
 def health():
