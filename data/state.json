@@ -1,0 +1,19 @@
+{
+  "lifetime_downloads": 0,
+  "require_api_key": false,
+  "api_keys": [
+    {
+      "key": "tc_demo_key_789123",
+      "name": "Default Personal Key",
+      "created_at": "2026-10-10 12:00:00",
+      "uses": 0
+    }
+  ],
+  "update_notice": {
+    "version_code": 1,
+    "version_name": "1.0.0",
+    "apk_url": "https://example.com/tinycrap-latest.apk",
+    "changelog": "Initial release with turbo downloads and format selection.",
+    "force_update": false
+  }
+}

@@ -1,0 +1,5 @@
+flask>=2.3.0
+flask-cors>=4.0.0
+yt-dlp>=2024.08.06
+waitress>=2.1.2
+requests>=2.31.0

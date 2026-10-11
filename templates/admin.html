@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiny Crap - Admin Dashboard</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+  <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+  <style>
+    body { background-color: #f5f5f7; font-family: 'Roboto', 'Segoe UI', sans-serif; }
+    .mdl-layout__header { background: #0B0F19; }
+    .dashboard-card { width: 100%; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .stat-number { font-size: 38px; font-weight: 800; color: #3F51B5; }
+    .stat-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #757575; font-weight: 600; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .badge-healthy { background: #E8F5E9; color: #2E7D32; }
+    .badge-warning { background: #FFF3E0; color: #E65100; }
+    .badge-running { background: #E3F2FD; color: #1565C0; }
+    .badge-queued { background: #EDE7F6; color: #512DA8; }
+    .code-box { background: #212121; color: #4CAF50; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; overflow-x: auto; }
+    .card-title-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <span class="mdl-layout-title" style="font-weight: 800; letter-spacing: 0.5px;">⚡ TINY CRAP &middot; Backend Control Center</span>
+      <div class="mdl-layout-spacer"></div>
+      <a class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" href="/admin" style="border-radius: 20px;">
+        <i class="material-icons" style="font-size: 16px; margin-right: 4px;">refresh</i> Refresh
+      </a>
+    </div>
+  </header>
+
+  <main class="mdl-layout__content">
+    <div class="page-content" style="max-width: 1200px; margin: 0 auto; padding: 24px 16px;">
+
+      {% if message %}
+      <div style="background: #E8F5E9; border-left: 4px solid #4CAF50; padding: 14px 20px; border-radius: 6px; margin-bottom: 20px; color: #2E7D32; font-weight: 500;">
+        {{ message }}
+      </div>
+      {% endif %}
+
+      <!-- Top Metric Cards -->
+      <div class="mdl-grid" style="padding: 0;">
+        <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 20px;">
+            <div class="stat-title">System Status</div>
+            <div style="margin-top: 8px;">
+              <span class="status-badge badge-healthy">🟢 HEALTHY &middot; ACTIVE</span>
+            </div>
+            <p style="font-size: 12px; color: #9E9E9E; margin-top: 8px; margin-bottom: 0;">FFmpeg: {{ ffmpeg_status }} &middot; yt-dlp: {{ ytdlp_version }}</p>
+          </div>
+        </div>
+
+        <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 20px;">
+            <div class="stat-title">Lifetime Downloads</div>
+            <div class="stat-number">{{ lifetime_downloads }}</div>
+            <p style="font-size: 12px; color: #9E9E9E; margin-top: 4px; margin-bottom: 0;">Processed via Tiny Crap engine</p>
+          </div>
+        </div>
+
+        <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 20px;">
+            <div class="stat-title">Active Downloads</div>
+            <div class="stat-number" style="color: #00897B;">{{ running_jobs|length }} / 2</div>
+            <p style="font-size: 12px; color: #9E9E9E; margin-top: 4px; margin-bottom: 0;">Server-wide limit enforced</p>
+          </div>
+        </div>
+
+        <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 20px;">
+            <div class="stat-title">Queue Waiting</div>
+            <div class="stat-number" style="color: #7B1FA2;">{{ queued_jobs|length }}</div>
+            <p style="font-size: 12px; color: #9E9E9E; margin-top: 4px; margin-bottom: 0;">Waiting users in line</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Realtime Queue and Jobs Table -->
+      <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 24px;">
+        <div class="card-title-bar">
+          <h4 style="margin: 0; font-size: 18px; font-weight: 700;">Active &amp; Queued Jobs (Max 2 Concurrency)</h4>
+          <span style="font-size: 12px; color: #757575;">Auto-processes when slots open</span>
+        </div>
+        {% if running_jobs or queued_jobs %}
+        <table class="mdl-data-table mdl-js-data-table" style="width: 100%; border: none;">
+          <thead>
+            <tr>
+              <th class="mdl-data-table__cell--non-numeric">Job ID</th>
+              <th class="mdl-data-table__cell--non-numeric">URL / Media</th>
+              <th class="mdl-data-table__cell--non-numeric">State</th>
+              <th class="mdl-data-table__cell--non-numeric">Progress</th>
+              <th class="mdl-data-table__cell--non-numeric">Started / Queued</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in running_jobs %}
+            <tr>
+              <td class="mdl-data-table__cell--non-numeric"><code>{{ job.id[:8] }}</code></td>
+              <td class="mdl-data-table__cell--non-numeric" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ job.title or job.url }}</td>
+              <td class="mdl-data-table__cell--non-numeric"><span class="status-badge badge-running">⚡ DOWNLOADING</span></td>
+              <td class="mdl-data-table__cell--non-numeric">{{ "%.1f"|format(job.progress) }}% ({{ job.speed or '...' }})</td>
+              <td class="mdl-data-table__cell--non-numeric">{{ job.created_at }}</td>
+            </tr>
+            {% endfor %}
+            {% for job in queued_jobs %}
+            <tr>
+              <td class="mdl-data-table__cell--non-numeric"><code>{{ job.id[:8] }}</code></td>
+              <td class="mdl-data-table__cell--non-numeric" style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ job.title or job.url }}</td>
+              <td class="mdl-data-table__cell--non-numeric"><span class="status-badge badge-queued">⏳ QUEUED (#{{ loop.index }})</span></td>
+              <td class="mdl-data-table__cell--non-numeric">Waiting in line</td>
+              <td class="mdl-data-table__cell--non-numeric">{{ job.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 32px; color: #9E9E9E;">
+          <i class="material-icons" style="font-size: 48px; color: #BDBDBD;">done_all</i>
+          <p style="margin: 8px 0 0; font-size: 14px;">No active downloads in flight. Server is idle and ready.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Two column settings: API Keys & Update Broadcast -->
+      <div class="mdl-grid" style="padding: 0;">
+        <!-- Left: API Keys Management -->
+        <div class="mdl-cell mdl-cell--6-col">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 24px;">
+            <div class="card-title-bar">
+              <h4 style="margin: 0; font-size: 18px; font-weight: 700;">API Keys Management</h4>
+              <form method="POST" action="/admin/toggle_key_requirement" style="margin: 0;">
+                <button type="submit" class="mdl-button mdl-js-button mdl-button--raised {% if require_api_key %}mdl-button--accent{% endif %}" style="font-size: 11px; height: 32px; line-height: 32px;">
+                  {% if require_api_key %}Required: YES{% else %}Required: NO (Open){% endif %}
+                </button>
+              </form>
+            </div>
+
+            <p style="font-size: 13px; color: #616161;">
+              Apps pass <code>X-API-Key</code> in HTTP header. If required, unauthenticated requests receive HTTP 401.
+            </p>
+
+            <table class="mdl-data-table mdl-js-data-table" style="width: 100%; margin-bottom: 20px;">
+              <thead>
+                <tr>
+                  <th class="mdl-data-table__cell--non-numeric">Label</th>
+                  <th class="mdl-data-table__cell--non-numeric">Key</th>
+                  <th>Uses</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for k in api_keys %}
+                <tr>
+                  <td class="mdl-data-table__cell--non-numeric">{{ k.name }}</td>
+                  <td class="mdl-data-table__cell--non-numeric"><code>{{ k.key }}</code></td>
+                  <td>{{ k.uses }}</td>
+                  <td>
+                    <form method="POST" action="/admin/revoke_key" style="margin:0;">
+                      <input type="hidden" name="key" value="{{ k.key }}">
+                      <button type="submit" class="mdl-button mdl-js-button mdl-button--icon mdl-button--accent" title="Delete Key">
+                        <i class="material-icons">delete</i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <form method="POST" action="/admin/create_key">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%;">
+                <input class="mdl-textfield__input" type="text" id="key_name" name="name" placeholder="e.g. Sushil Personal Mobile">
+                <label class="mdl-textfield__label" for="key_name">New Key Label / Device</label>
+              </div>
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" type="submit">
+                <i class="material-icons">add</i> Generate New Key
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right: App Update Wall Publisher -->
+        <div class="mdl-cell mdl-cell--6-col">
+          <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 24px;">
+            <div class="card-title-bar">
+              <h4 style="margin: 0; font-size: 18px; font-weight: 700;">Broadcast App Update</h4>
+              {% if update_notice.force_update %}
+              <span class="status-badge badge-warning">🚨 MANDATORY WALL ACTIVE</span>
+              {% endif %}
+            </div>
+
+            <p style="font-size: 13px; color: #616161;">
+              When force update is activated or a higher version code is published, older apps display a non-dismissible full-screen Update Wall.
+            </p>
+
+            <form method="POST" action="/admin/publish_update">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 48%; display: inline-block;">
+                <input class="mdl-textfield__input" type="number" id="version_code" name="version_code" value="{{ update_notice.version_code }}">
+                <label class="mdl-textfield__label" for="version_code">Version Code (e.g. 2)</label>
+              </div>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 48%; display: inline-block; float: right;">
+                <input class="mdl-textfield__input" type="text" id="version_name" name="version_name" value="{{ update_notice.version_name }}">
+                <label class="mdl-textfield__label" for="version_name">Version Name (e.g. 1.1.0)</label>
+              </div>
+
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%;">
+                <input class="mdl-textfield__input" type="url" id="apk_url" name="apk_url" value="{{ update_notice.apk_url }}">
+                <label class="mdl-textfield__label" for="apk_url">New APK Download URL</label>
+              </div>
+
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%;">
+                <textarea class="mdl-textfield__input" type="text" rows="2" id="changelog" name="changelog">{{ update_notice.changelog }}</textarea>
+                <label class="mdl-textfield__label" for="changelog">Changelog Highlights</label>
+              </div>
+
+              <div style="margin: 12px 0 20px;">
+                <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="force_update">
+                  <input type="checkbox" id="force_update" name="force_update" class="mdl-switch__input" {% if update_notice.force_update %}checked{% endif %}>
+                  <span class="mdl-switch__label"><strong>Force Update Wall</strong> (Block previous versions)</span>
+                </label>
+              </div>
+
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" type="submit" style="width: 100%;">
+                Publish &amp; Broadcast Update
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documentation Card -->
+      <div class="mdl-card mdl-shadow--2dp dashboard-card" style="padding: 24px;">
+        <h4 style="margin: 0 0 12px; font-size: 18px; font-weight: 700;">API Quick Reference for Tiny Crap App</h4>
+        <div class="code-box">
+# 1. Inspect URL Formats &amp; Metadata
+POST /api/info
+Headers: { "X-API-Key": "YOUR_KEY", "Content-Type": "application/json" }
+Body: { "url": "https://www.instagram.com/reel/..." }
+
+# 2. Dispatch Media Download Job (Server Queue: max 2 simultaneous)
+POST /api/download
+Body: { "url": "https://...", "type": "video", "format_id": "137", "quality": "1080p", "ext": "mp4" }
+Returns: { "job_id": "xyz-123", "status": "queued"|"downloading", "queue_position": 1 }
+
+# 3. Check Job Realtime Status &amp; Progress
+GET /api/status/&lt;job_id&gt;
+Returns: { "status": "downloading", "progress": 78.5, "speed": "4.2 MB/s", "queue_position": 0 }
+
+# 4. Stream Final Media File
+GET /api/file/&lt;job_id&gt;
+
+# 5. Version Check
+GET /api/check_update
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

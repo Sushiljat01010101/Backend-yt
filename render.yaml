@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tinycrap-downloader-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python passenger_wsgi.py"
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        value: tinycrap2026
